@@ -1,0 +1,63 @@
+{
+  "dataset": "MovieLens ml-latest-small",
+  "ratings": 100836,
+  "users": 610,
+  "movies": 9742,
+  "test_users": 581,
+  "k": 10,
+  "best_weights": {
+    "collaborative": 0.8,
+    "content": 0.1,
+    "popularity": 0.1
+  },
+  "validation_ndcg": 0.1151586472069163,
+  "results": [
+    {
+      "name": "Popularity baseline",
+      "precision": 0.06265060240963856,
+      "recall": 0.05014007205093377,
+      "ndcg": 0.08138287963631398,
+      "coverage": 0.009238349414904538,
+      "diversity": 0.7776350630309322,
+      "latencyMs": 1.094966437170689
+    },
+    {
+      "name": "Content-based",
+      "precision": 0.00395869191049914,
+      "recall": 0.004373853125124032,
+      "ndcg": 0.004509125952613292,
+      "coverage": 0.17378361732703757,
+      "diversity": 0.19334865884206104,
+      "latencyMs": 1.0769003443179488
+    },
+    {
+      "name": "Collaborative filtering",
+      "precision": 0.09001721170395868,
+      "recall": 0.08378845468469899,
+      "ndcg": 0.11079700490717512,
+      "coverage": 0.051529460069800866,
+      "diversity": 0.7866480489400741,
+      "latencyMs": 1.1476518072527728
+    },
+    {
+      "name": "ReelMind hybrid",
+      "precision": 0.09242685025817557,
+      "recall": 0.08417971373964239,
+      "ndcg": 0.11220014742982581,
+      "coverage": 0.04998973516731677,
+      "diversity": 0.7601974102691257,
+      "latencyMs": 1.2947199656788368
+    },
+    {
+      "name": "ReelMind hybrid + re-ranking",
+      "precision": 0.09001721170395868,
+      "recall": 0.08066393079573918,
+      "ndcg": 0.11053064520125894,
+      "coverage": 0.048450010264832685,
+      "diversity": 0.8086773769992359,
+      "latencyMs": 5.5197850258447065
+    }
+  ],
+  "trained_at": "2026-10-23 23:11",
+  "seconds": 22.4
+}

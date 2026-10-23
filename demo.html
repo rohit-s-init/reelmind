@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Feedflix Demo</title>
+  <style>
+    :root {
+      --bg: #141414;
+      --panel: #1f1f1f;
+      --card: #262626;
+      --text: #f2f2f2;
+      --muted: #a3a3a3;
+      --accent: #e50914;
+      --radius: 10px;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      line-height: 1.4;
+    }
+
+    header {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+      padding: 16px clamp(16px, 4vw, 48px);
+      background: linear-gradient(#000c, #0000);
+    }
+    .logo { font-size: 28px; font-weight: 800; color: var(--accent); letter-spacing: 1px; }
+    .who { display: flex; flex-wrap: wrap; gap: 8px; margin-left: auto; align-items: center; }
+    .who span { color: var(--muted); font-size: 14px; }
+    .who button {
+      background: var(--panel); color: var(--text); border: 1px solid #333;
+      padding: 8px 14px; border-radius: 999px; cursor: pointer; font-size: 14px;
+    }
+    .who button.active { background: var(--text); color: #000; font-weight: 600; }
+
+    main { padding: 0 clamp(16px, 4vw, 48px) 48px; }
+
+    .hello { margin: 12px 0 4px; font-size: clamp(22px, 3vw, 32px); }
+    .about-you { color: var(--muted); margin: 0 0 20px; max-width: 70ch; }
+
+    .how {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px; margin-bottom: 28px;
+    }
+    .how div { background: var(--panel); border-radius: var(--radius); padding: 14px 16px; }
+    .how b { display: block; margin-bottom: 4px; }
+    .how small { color: var(--muted); }
+
+    .row { margin-bottom: 28px; }
+    .row h2 { font-size: 20px; margin: 0 0 10px; }
+    .shelf {
+      display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px;
+      scroll-snap-type: x mandatory;
+    }
+    .card {
+      flex: 0 0 240px; scroll-snap-align: start;
+      background: var(--card); border-radius: var(--radius); overflow: hidden;
+      display: flex; flex-direction: column;
+      transition: transform .15s ease;
+    }
+    .card:hover { transform: translateY(-3px); }
+    .cover {
+      height: 90px; display: flex; align-items: flex-end; justify-content: space-between;
+      padding: 10px 12px; font-size: 13px; font-weight: 600;
+    }
+    .cover .emoji { font-size: 34px; line-height: 1; }
+    .gaming      { background: linear-gradient(135deg, #5b21b6, #9333ea); }
+    .cooking     { background: linear-gradient(135deg, #c2410c, #f59e0b); }
+    .space       { background: linear-gradient(135deg, #0c1445, #2563eb); }
+    .programming { background: linear-gradient(135deg, #065f46, #10b981); }
+    .fitness     { background: linear-gradient(135deg, #9f1239, #f43f5e); }
+    .movies      { background: linear-gradient(135deg, #3f3f46, #a1a1aa); }
+
+    .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .title { font-weight: 600; }
+    .tags { display: flex; flex-wrap: wrap; gap: 4px; }
+    .tags span { font-size: 11px; color: var(--muted); background: #333; padding: 2px 6px; border-radius: 4px; }
+    .reason { font-size: 12px; color: #fbbf24; margin-top: auto; }
+    .actions { display: flex; gap: 6px; }
+    .actions button {
+      flex: 1; border: 0; border-radius: 6px; padding: 7px 0; cursor: pointer;
+      font-size: 13px; font-weight: 600;
+    }
+    .up   { background: var(--text); color: #000; }
+    .nope { background: #3a3a3a; color: var(--text); }
+
+    .empty { color: var(--muted); }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(80px);
+      background: var(--text); color: #000; padding: 10px 18px; border-radius: 999px;
+      font-weight: 600; transition: transform .25s ease; max-width: calc(100% - 32px);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">FEEDFLIX</div>
+    <div class="who" id="who"><span>Browsing as:</span></div>
+  </header>
+
+  <main>
+    <h1 class="hello" id="hello"></h1>
+    <p class="about-you" id="aboutYou"></p>
+
+    <section class="how">
+      <div><b>🧩 More like this</b><small>Posts that share tags and communities with ones you liked.</small></div>
+      <div><b>👥 People like you</b><small>Posts loved by people whose taste matches yours.</small></div>
+      <div><b>🔥 Trending</b><small>What's getting lots of love right now. New visitors start here.</small></div>
+    </section>
+
+    <div id="rows"></div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="recommender.js"></script>
+  <script>
+    // ---------- Sample data (in your app this comes from your database) ----------
+    const EMOJI = { gaming: "🎮", cooking: "🍳", space: "🚀", programming: "💻", fitness: "🏋️", movies: "🎬" };
+    const HOUR = 3_600_000;
+
+    const POSTS = [
+      ["g1", "gaming", "Elden Ring DLC boss tier list", ["rpg", "souls"]],
+      ["g2", "gaming", "Finally beat Hollow Knight after 60 hours", ["indie", "metroidvania"]],
+      ["g3", "gaming", "Best cozy games for a rainy weekend", ["cozy", "indie"]],
+      ["g4", "gaming", "Baldur's Gate 3 builds that break the game", ["rpg", "builds"]],
+      ["g5", "gaming", "Is the Switch 2 worth it?", ["nintendo", "hardware"]],
+      ["g6", "gaming", "Hidden indie gems nobody talks about", ["indie"]],
+      ["c1", "cooking", "My grandma's 20-minute butter chicken", ["indian", "quick"]],
+      ["c2", "cooking", "Sourdough starter: day 7 update", ["baking", "bread"]],
+      ["c3", "cooking", "Cheap meal prep for the whole week", ["quick", "budget"]],
+      ["c4", "cooking", "The crispiest roast potatoes ever", ["sides"]],
+      ["c5", "cooking", "Homemade pasta with just 2 ingredients", ["italian", "quick"]],
+      ["c6", "cooking", "Croissants from scratch (it took 3 days)", ["baking"]],
+      ["s1", "space", "James Webb just found a new exoplanet", ["telescopes", "exoplanets"]],
+      ["s2", "space", "My first photo of the Orion Nebula", ["astrophotography"]],
+      ["s3", "space", "How Starship catches its own booster", ["rockets", "spacex"]],
+      ["s4", "space", "Why Mars is so hard to land on", ["mars", "rockets"]],
+      ["s5", "space", "Budget telescope recommendations", ["telescopes", "beginner"]],
+      ["p1", "programming", "I built a Reddit clone in a weekend", ["webdev", "javascript"]],
+      ["p2", "programming", "Python tricks I wish I knew earlier", ["python", "beginner"]],
+      ["p3", "programming", "Why our team moved from REST to GraphQL", ["webdev", "api"]],
+      ["p4", "programming", "Writing a tiny game engine in Rust", ["rust", "gamedev"]],
+      ["p5", "programming", "CSS grid finally clicked for me", ["webdev", "css"]],
+      ["f1", "fitness", "Couch to 5K: I did it!", ["running", "beginner"]],
+      ["f2", "fitness", "Simple home workout, no equipment", ["home", "beginner"]],
+      ["f3", "fitness", "How I added 20kg to my deadlift", ["strength"]],
+      ["f4", "fitness", "High-protein breakfasts that taste good", ["nutrition", "quick"]],
+      ["m1", "movies", "Underrated sci-fi movies to watch tonight", ["scifi"]],
+      ["m2", "movies", "Interstellar's science, explained", ["scifi", "space"]],
+      ["m3", "movies", "Best video game movie adaptations", ["games", "adaptations"]],
+      ["m4", "movies", "Studio Ghibli marathon order", ["animation"]],
+    ];
+
+    // People using the demo. Each starts with a few things they've already liked.
+    const PERSONAS = {
+      alex:  { name: "Alex",  icon: "🎮", likes: [["g1", "upvote"], ["g4", "save"], ["p4", "upvote"]] },
+      priya: { name: "Priya", icon: "🍳", likes: [["c1", "upvote"], ["c2", "save"], ["f4", "upvote"]] },
+      sam:   { name: "Sam",   icon: "🚀", likes: [["s1", "upvote"], ["s3", "comment"], ["m2", "upvote"]] },
+      guest: { name: "New visitor", icon: "👋", likes: [] },
+    };
+
+    // Background users so "People like you" and "Trending" have something to work with.
+    function seededRandom(seed) {
+      return () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+    }
+
+    function buildRecommender() {
+      const rec = new Recommender();
+      const now = Date.now();
+      POSTS.forEach(([id, community, title, tags], i) =>
+        rec.addPost({ id, community, title, tags, author: "someone", createdAt: now - ((i * 7) % 72 + 1) * HOUR })
+      );
+
+      const random = seededRandom(42);
+      const communities = Object.keys(EMOJI);
+      for (let u = 0; u < 40; u++) {
+        const favourite = communities[Math.floor(random() * communities.length)];
+        for (const [id, community] of POSTS) {
+          const chance = community === favourite ? 0.6 : 0.05;
+          if (random() < chance) rec.track(`user${u}`, id, random() < 0.3 ? "save" : "upvote");
+        }
+      }
+
+      for (const [userId, p] of Object.entries(PERSONAS)) {
+        p.likes.forEach(([postId, action]) => rec.track(userId, postId, action));
+      }
+      return rec;
+    }
+
+    // ---------- UI ----------
+    const rec = buildRecommender();
+    let currentUser = "alex";
+
+    function renderUserPicker() {
+      const who = document.getElementById("who");
+      for (const [id, p] of Object.entries(PERSONAS)) {
+        const btn = document.createElement("button");
+        btn.textContent = `${p.icon} ${p.name}`;
+        btn.dataset.user = id;
+        btn.onclick = () => { currentUser = id; render(); };
+        who.appendChild(btn);
+      }
+    }
+
+    function describeUser() {
+      const liked = POSTS.filter(([id]) => (rec.activity.get(currentUser)?.get(id) || 0) >= 3);
+      if (!liked.length) return "You haven't liked anything yet, so we're showing what's popular. Upvote a few posts and watch the rows change!";
+      const titles = liked.map(([, , title]) => `“${title}”`).slice(-3).join(", ");
+      return `You've liked ${liked.length} post${liked.length > 1 ? "s" : ""}, including ${titles}. Upvote or hide posts below and everything updates instantly.`;
+    }
+
+    function cardHTML({ post, reason }) {
+      return `
+        <article class="card">
+          <div class="cover ${post.community}">
+            <span>r/${post.community}</span>
+            <span class="emoji">${EMOJI[post.community]}</span>
+          </div>
+          <div class="body">
+            <div class="title">${post.title}</div>
+            <div class="tags">${post.tags.map((t) => `<span>#${t}</span>`).join("")}</div>
+            <div class="reason">💡 ${reason}</div>
+            <div class="actions">
+              <button class="up" data-post="${post.id}" data-action="upvote">▲ Upvote</button>
+              <button class="nope" data-post="${post.id}" data-action="hide">✕ Not for me</button>
+            </div>
+          </div>
+        </article>`;
+    }
+
+    function render() {
+      const persona = PERSONAS[currentUser];
+      document.querySelectorAll(".who button").forEach((b) =>
+        b.classList.toggle("active", b.dataset.user === currentUser)
+      );
+      document.getElementById("hello").textContent =
+        currentUser === "guest" ? "Welcome! Here's what's popular" : `Hey ${persona.name}, here's your feed`;
+      document.getElementById("aboutYou").textContent = describeUser();
+
+      const rows = rec.homeRows(currentUser, 8);
+      document.getElementById("rows").innerHTML = rows.length
+        ? rows.map((row) => `
+            <section class="row">
+              <h2>${row.title}</h2>
+              <div class="shelf">${row.items.map(cardHTML).join("")}</div>
+            </section>`).join("")
+        : `<p class="empty">You've seen everything! 🎉 Switch user to start over.</p>`;
+    }
+
+    document.getElementById("rows").addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      rec.track(currentUser, btn.dataset.post, btn.dataset.action);
+      toast(btn.dataset.action === "upvote" ? "Nice! We'll show you more like this 👍" : "Got it, we'll show less of that 👌");
+      render();
+    });
+
+    function toast(message) {
+      const el = document.getElementById("toast");
+      el.textContent = message;
+      el.classList.add("show");
+      clearTimeout(toast.timer);
+      toast.timer = setTimeout(() => el.classList.remove("show"), 1800);
+    }
+
+    renderUserPicker();
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# MovieLens data: its licence doesn't allow redistribution; train.py downloads it
+reelmind/data/
+
+# Node
+node_modules/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

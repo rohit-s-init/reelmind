@@ -1,0 +1,12 @@
+{
+  "name": "feedflix-recommender",
+  "version": "1.0.0",
+  "description": "Simple Netflix-style recommendations for a Reddit-like app",
+  "main": "recommender.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}
